@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ritmo · Rendimiento deportivo</title>
+  <meta name="description" content="Estima el próximo rendimiento de un deportista con sus resultados y las condiciones de la competencia.">
+  <meta name="theme-color" content="#15281d">
+  <link rel="stylesheet" href="./estilos.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#estimador" aria-label="Ritmo, inicio">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>ritmo<span class="brand-dot">.</span><small>Rendimiento deportivo</small></span>
+    </a>
+    <nav aria-label="Principal">
+      <a href="#estimador" class="nav-link active" aria-current="location"><span aria-hidden="true">↗</span> Estimador</a>
+      <a href="#historial" class="nav-link"><span aria-hidden="true">≡</span> Historial</a>
+      <a href="#fuentes" class="nav-link"><span aria-hidden="true">◫</span> Fuentes</a>
+    </nav>
+    <p class="local-status"><span></span> Datos en este navegador</p>
+  </aside>
+
+  <main>
+    <header class="page-header" id="estimador">
+      <div><h1>Estimador deportivo</h1><p>Proyecta el próximo resultado a partir del historial y las condiciones del evento.</p></div>
+      <button class="button secondary" id="add-athlete" type="button"><span aria-hidden="true">＋</span> Nuevo deportista</button>
+    </header>
+
+    <section class="panel selectors" aria-label="Perfil de estimación">
+      <label>Deporte<select id="sport"></select></label>
+      <label>Deportista<select id="athlete"></select></label>
+      <label>Métrica<select id="metric"></select></label>
+      <button class="button link-button" id="add-sport" type="button">＋ Crear deporte</button>
+    </section>
+    <p class="notice" id="profile-note" role="status" hidden></p>
+    <p class="notice error" id="status" role="status" hidden></p>
+
+    <div class="workspace">
+      <section class="panel scenario" aria-labelledby="scenario-title">
+        <div class="panel-heading"><span class="panel-icon" aria-hidden="true">↗</span><div><h2 id="scenario-title">Próximo evento</h2><p>Define las condiciones que conoces.</p></div></div>
+        <form id="scenario-form">
+          <div id="scenario-fields"></div>
+          <button class="button primary stretch" type="submit">Calcular estimación <span aria-hidden="true">→</span></button>
+          <p class="field-help" id="forecast-status" role="status" hidden></p>
+        </form>
+      </section>
+
+      <section class="panel result" aria-labelledby="result-title">
+        <div class="panel-heading result-heading"><div><h2 id="result-title">Proyección de rendimiento</h2><p id="result-subtitle">Resultados del deportista en el tiempo</p></div><span class="method-tag" id="method" hidden></span></div>
+        <div id="result-summary" aria-live="polite"></div>
+        <div class="plot" id="plot" hidden>
+          <canvas id="chart" role="img" aria-label="Evolución del rendimiento y siguiente estimación"></canvas>
+          <div class="legend"><span><i></i> Historial</span><span id="forecast-legend"><i></i> Estimación</span></div>
+        </div>
+        <div id="explanation"></div>
+      </section>
+    </div>
+
+    <section class="panel history" id="historial" aria-labelledby="history-title">
+      <div class="panel-heading section-heading">
+        <div><h2 id="history-title">Historial de rendimiento</h2><p id="history-intro"></p></div>
+        <div class="actions">
+          <button class="button secondary" type="button" id="demo">Cargar ejemplo</button>
+          <button class="button secondary" type="button" id="template">Plantilla CSV</button>
+          <button class="button secondary" type="button" id="import-csv">Importar CSV</button>
+          <button class="button secondary" type="button" id="export-csv">Exportar</button>
+          <button class="button dark" type="button" id="add-event">＋ Registrar resultado</button>
+          <input type="file" id="csv-file" accept=".csv,text/csv" hidden>
+        </div>
+      </div>
+      <p class="field-help history-status" id="history-status" role="status" hidden></p>
+      <details class="csv-help" id="csv-help" hidden>
+        <summary>Cómo llenar la plantilla CSV</summary>
+        <p id="csv-instructions"></p>
+      </details>
+      <div id="history-table"></div>
+      <div class="history-pagination" id="pagination" hidden>
+        <button id="prev" class="button secondary" type="button">Anterior</button>
+        <span id="page-detail" aria-live="polite"></span>
+        <button id="next" class="button secondary" type="button">Siguiente</button>
+      </div>
+    </section>
+
+    <section class="panel sources" id="fuentes" aria-labelledby="sources-title">
+      <div class="panel-heading"><div><h2 id="sources-title">Fuentes y metodología</h2><p>Las fuentes externas sirven para definir e interpretar métricas. Tu historial personal alimenta y evalúa la estimación.</p></div></div>
+      <p class="sport-context" id="sport-context"></p>
+      <div class="source-grid" id="source-list"></div>
+      <details class="model-details">
+        <summary>Cómo se calcula y evalúa la proyección</summary>
+        <p>Se necesitan tres resultados de la misma métrica y segmento, anteriores a la fecha objetivo. El promedio ponderado asigna pesos crecientes a los últimos cinco resultados. El método por condiciones similares busca los cinco antecedentes más cercanos, con distancias normalizadas por el rango observado de cada variable en hasta 80 antecedentes recientes.</p>
+        <p>Para comparar métodos se necesitan ocho antecedentes con las variables completas y seis pruebas comparables entre los últimos 20 eventos. Se usa el método por condiciones similares cuando obtiene un error menor. Los valores desconocidos se dejan vacíos y los ceros válidos se conservan.</p>
+        <p>El error absoluto medio se calcula simulando el procedimiento en hasta 30 eventos históricos. Cada simulación usa exclusivamente fechas anteriores, incluidas las pruebas para elegir el método. Con 20 o más errores, se suma y resta el percentil 80 de sus magnitudes y se respetan los límites de la métrica. La cobertura futura puede variar.</p>
+      </details>
+    </section>
+  </main>
+
+  <dialog id="athlete-dialog">
+    <form id="athlete-form">
+      <div class="dialog-title"><h2>Nuevo deportista</h2><button type="button" class="close" data-close aria-label="Cerrar">×</button></div>
+      <label>Nombre o alias<input name="name" maxlength="80" required></label>
+      <label>Deporte<select name="sport" id="athlete-sport"></select></label>
+      <label>Métrica inicial<select name="metric" id="athlete-metric"></select></label>
+      <p class="field-help error-text" id="athlete-error" role="alert" hidden></p>
+      <button class="button primary stretch" type="submit">Crear deportista</button>
+    </form>
+  </dialog>
+
+  <dialog id="sport-dialog">
+    <form id="sport-form">
+      <div class="dialog-title"><h2>Crear deporte</h2><button type="button" class="close" data-close aria-label="Cerrar">×</button></div>
+      <label>Nombre del deporte<input name="name" maxlength="60" placeholder="Ej. Natación" required></label>
+      <div class="form-grid">
+        <label>Métrica principal<input name="metric" maxlength="60" placeholder="Ej. Tiempo" required></label>
+        <label>Unidad<input name="unit" maxlength="18" placeholder="Ej. s" required></label>
+        <label>Valor mínimo<input name="min" inputmode="decimal" value="0" required></label>
+        <label>Valor máximo<input name="max" inputmode="decimal" value="10000" required></label>
+      </div>
+      <label>Nombre del segmento de comparación<input name="segment" maxlength="60" placeholder="Ej. Estilo y distancia" required></label>
+      <fieldset>
+        <legend>Variables numéricas previas</legend>
+        <div id="custom-variables"></div>
+        <button type="button" class="button secondary" id="add-variable">＋ Añadir variable</button>
+      </fieldset>
+      <p class="field-help error-text" id="sport-error" role="alert" hidden></p>
+      <button class="button primary stretch" type="submit">Crear deporte</button>
+    </form>
+  </dialog>
+
+  <dialog id="event-dialog">
+    <form id="event-form">
+      <div class="dialog-title"><h2 id="event-title">Registrar resultado</h2><button type="button" class="close" data-close aria-label="Cerrar">×</button></div>
+      <p class="field-help">Registra al menos una métrica. Captura las condiciones que ya conocías antes del evento y deja los datos desconocidos vacíos.</p>
+      <div id="event-fields"></div>
+      <p class="field-help error-text" id="event-error" role="alert" hidden></p>
+      <button class="button primary stretch" type="submit">Guardar resultado</button>
+    </form>
+  </dialog>
+</body>
+</html>
